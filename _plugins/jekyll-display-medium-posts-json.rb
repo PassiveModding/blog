@@ -79,7 +79,56 @@ def generate(site)
 
         description = item['description']
         # prepend description saying that the original post is on Medium
-        description = "<p>Originally published on <a href=\"#{link}\">Medium</a></p>" + description
+        description = "<h2>Originally published on <a href=\"#{link}\">Medium</a></h2>" + description
+
+        # update pre tags to use highlight tag, making sure to add newlines to the end of each line
+        # use rules to detect the language of the code or default to text
+        # medium doesn't use <code blocks
+        description = description.gsub(/<pre>(.*?)<\/pre>/m) do |match|
+          code = $1
+
+          # detect language
+          language = nil
+          code = code.gsub(/<br>/, "\n")
+          # fix less than and greater than
+          code = code.gsub(/&lt;/, "<")
+          code = code.gsub(/&gt;/, ">")
+          if code.include?('<code class="language-')
+            language = code.match(/<code class="language-(.*?)"/)[1]
+          else
+            if code.match(/(using|public class|public static void Main|namespace)/m) || code.match(/var.+ = new/m)
+              language = 'csharp'
+            # match csproj
+            elsif code.match(/\<Project Sdk=\"Microsoft.NET.Sdk\"\>/m)
+              language = 'xml'
+            # match <script> tags
+            elsif code.match(/\<script/m)
+              language = 'javascript'
+            # match <style> tags
+            elsif code.match(/\<style/m)
+              language = 'css'
+            # match <html> tags
+            elsif code.match(/\<html/m)
+              language = 'html'
+            elsif code.match(/public static void main|public class/m)
+              language = 'java'
+            elsif code.match(/\<\?php/m)
+              language = 'php'
+            # line starting with cd, curl, ls, mkdir, mv, rm, touch, wget, dotnet add, gcloud, kubectl, az
+            elsif code.match(/^(cd|curl|ls|mkdir|mv|rm|touch|wget|dotnet add|gcloud|kubectl|az)/m)
+              language = 'bash'
+            end
+          end
+
+          # if language is still nil, default to text
+          if language.nil?
+            language = 'text'
+          end
+
+          # now that we have the language, we can wrap the code in { % highlight <language> % }
+          code = "{% highlight #{language} %}\n#{code}\n{% endhighlight %}"
+        end
+
         doc.content = description
 
         # Add the document to the 'posts' collection
