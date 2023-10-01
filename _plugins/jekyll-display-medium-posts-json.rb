@@ -8,6 +8,33 @@ module Jekyll
     safe true
     priority :high
 
+def thumb_b64(thumbnail)  
+  ext = thumbnail.split('.')[-1]
+
+  # download thumbnail and convert to base64
+  # follow redirects if necessary
+  while true
+    uri = URI(thumbnail)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    request = Net::HTTP::Get.new(uri)
+    response = http.request(request)
+
+    if response.code == '301'
+      thumbnail = "#{uri.scheme}://#{uri.host}#{response['location']}"
+      puts "redirecting to #{thumbnail}"
+    else
+      break
+    end
+  end
+
+  # convert image to base64
+  thumb_b64 = Base64.encode64(response.body)
+  thumb_b64 = "data:image/#{ext};base64,#{thumb_b64}"
+
+  return thumb_b64
+end
+
 def generate(site)
       uri = URI("https://api.rss2json.com/v1/api.json?rss_url=https://medium.com/feed/@jaquesy")
       http = Net::HTTP.new(uri.host, uri.port)
@@ -23,7 +50,6 @@ def generate(site)
         date = Time.parse(date_str)
         
         categories = item['categories']
-        description = Nokogiri::HTML(item['description']).search('p').text
         thumbnail = item['thumbnail']
         link = item['link']
 
@@ -34,25 +60,26 @@ def generate(site)
         # Create a new post document
         doc = Jekyll::Document.new(path, { :site => site, :collection => site.collections['posts'] })
         doc.data['title'] = title
-
-        # medium has a list of categories but we only want the first one
-        doc.data['category'] = categories[0]
-        doc.data['categories'] = categories
-        # tags
+        doc.data['layout'] = 'post'
         doc.data['tags'] = categories
-
-        doc.data['thumbnail'] = thumbnail
-        doc.data['link'] = link
-        doc.data["image"] = thumbnail
         doc.data['last_modified_at'] = date 
         doc.data['date'] = date 
+        doc.data['link'] = link
         
-        # set content
-        # truncate description to 200 characters and remove all html tags, cut last word, add ...
-        description = description[0..200]
-        description = description.split[0...-1].join(' ') + '...'
-        # add read more and set link to medium post
-        description += "\n\n[Read more](#{link})"
+        # download thumbnail and convert to base64
+        thumb_b64_str = thumb_b64(thumbnail)
+        doc.data["image"] = {
+          "path" => thumbnail,
+          "alt" => title,
+          "lqip" => thumb_b64_str
+        }
+        
+
+        # Set the document's content to the post's content
+
+        description = item['description']
+        # prepend description saying that the original post is on Medium
+        description = "<p>Originally published on <a href=\"#{link}\">Medium</a></p>" + description
         doc.content = description
 
         # Add the document to the 'posts' collection

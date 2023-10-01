@@ -176,13 +176,13 @@ exclude:
   - "*.bak"
 
 jekyll-archives:
-  enabled: [categories, tags]
+  enabled: [tags]
   layouts:
-    category: category
+    #category: category
     tag: tag
   permalinks:
     tag: /tags/:name/
-    category: /categories/:name/
+    #category: /categories/:name/
 
 #collections:
 #  medium_posts_json:
