@@ -1,6 +1,5 @@
 ---
 title: How I send and receive emails from my custom domain reliably using AWS SES, Cloudflare and Gmail
-author: Jaquesy
 date: 2023-10-13 00:00:00 +0800
 categories: [Email, AWS, Cloudflare, Gmail]
 pin: true
