@@ -65,15 +65,23 @@ def generate(site)
         doc.data['last_modified_at'] = date 
         doc.data['date'] = date 
         doc.data['link'] = link
-        
+
+        # log
+        puts "title: #{title}"        
         # download thumbnail and convert to base64
-        thumb_b64_str = thumb_b64(thumbnail)
-        doc.data["image"] = {
-          "path" => thumbnail,
-          "alt" => title,
-          "lqip" => thumb_b64_str
-        }
-        
+
+        # only set if exists
+        if thumbnail != nil && thumbnail != ""
+          thumb_b64_str = thumb_b64(thumbnail)
+          doc.data["image"] = {
+            "path" => thumbnail,
+            "alt" => title,
+            "lqip" => thumb_b64_str
+          }
+        else 
+          puts "no thumbnail for #{title}"
+          thumb_b64_str = nil;
+        end      
 
         # Set the document's content to the post's content
 
